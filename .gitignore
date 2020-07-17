@@ -1,0 +1,7 @@
+debug.test
+coverage.txt
+profile.out
+.idea
+
+bin/redis
+/tmp
