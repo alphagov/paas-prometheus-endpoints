@@ -1,0 +1,26 @@
+---
+applications:
+  - name: paas-prometheus-endpoint-redis
+    memory: 1G
+    disk_quota: 100M
+    stack: cflinuxfs3
+    instances: 2
+    buildpack: go_buildpack
+    command: ./bin/redis
+
+    health-check-type: http
+    health-check-http-endpoint: /health
+
+    env:
+      GOVERSION: go1.13
+      GOPACKAGENAME: github.com/alphagov/paas-prometheus-endpoints/src/redis
+
+      DEPLOY_ENV: ((deploy_env))
+
+      CF_API_ADDRESS: ((cf_api_address))
+      CF_CLIENT_ID: ((cf_client_id))
+      CF_CLIENT_SECRET: ((cf_client_secret))
+
+      AWS_REGION: ((aws_region))
+      AWS_ACCESS_KEY_ID: ((aws_access_key_id))
+      AWS_SECRET_ACCESS_KEY: ((aws_secret_access_key))
