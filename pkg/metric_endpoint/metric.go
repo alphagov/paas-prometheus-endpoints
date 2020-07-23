@@ -6,7 +6,6 @@ import (
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
 
-	"code.cloudfoundry.org/lager"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/gin-gonic/gin"
 )
@@ -18,14 +17,15 @@ type Metric struct {
 	Tags  map[string]string
 }
 
-type ServiceMetricFetcher func(
-	c *gin.Context,
-	user authenticator.CFUser,
-	serviceInstances []cfclient.ServiceInstance,
-	servicePlans []cfclient.ServicePlan,
-	service cfclient.Service,
-	logger lager.Logger,
-) ([]Metric, error)
+type ServiceMetricFetcher interface {
+	FetchMetrics(
+		c *gin.Context,
+		user authenticator.CFUser,
+		serviceInstances []cfclient.ServiceInstance,
+		servicePlans []cfclient.ServicePlan,
+		service cfclient.Service,
+	) ([]Metric, error)
+}
 
 func groupMetricsByName(metrics []Metric) map[string][]Metric {
 	groupedMetrics := map[string][]Metric{}

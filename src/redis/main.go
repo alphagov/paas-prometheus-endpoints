@@ -60,7 +60,7 @@ func main() {
 	elasticacheClient := elasticache.New(awsSession)
 	cloudwatchClient := cloudwatch.New(awsSession)
 
-	redisMetricFetcher := RedisMetricFetcher(elasticacheClient, cloudwatchClient)
+	redisMetricFetcher := NewRedisMetricFetcher(elasticacheClient, cloudwatchClient, cfg.Logger)
 	redisMetricEndpoint := metric_endpoint.MetricEndpoint(servicePlansFetcher, redisMetricFetcher, cfg.Logger)
 
 	router := gin.Default()
