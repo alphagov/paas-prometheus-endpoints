@@ -43,7 +43,7 @@ func MetricEndpoint(
 			return
 		}
 
-		serviceMetrics, err := serviceMetricsFetcher(c, user, serviceInstances, servicePlans, *service, logger)
+		serviceMetrics, err := serviceMetricsFetcher.FetchMetrics(c, user, serviceInstances, servicePlans, *service)
 		if err != nil {
 			logger.Error("error fetching service metrics", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
