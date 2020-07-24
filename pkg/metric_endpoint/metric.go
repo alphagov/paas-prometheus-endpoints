@@ -57,7 +57,11 @@ func renderMetricGroup(metricName string, metricGroup []Metric) string {
 			firstTag = false
 		}
 		// FIXME: Output timestamp too
-		output += fmt.Sprintf("} %v\n", metric.Value)
+		output += fmt.Sprintf("} %v", metric.Value)
+		if metric.Time != nil {
+			output += fmt.Sprintf(" %d000", metric.Time.Unix())
+		}
+		output += "\n"
 	}
 	return output
 }
