@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"time"
 	"unicode"
@@ -18,8 +19,10 @@ func GetMetricsForRedisNodes(
 ) (map[string]map[string]*cloudwatch.MetricDataResult, error) {
 	nodeMetricQueries := listMetricsForRedisNodes(redisNodes)
 
-	desiredCloudwatchStats := []string{"Average"}
-	metricDataQueries, metricDataQueryIdLookup := mergeRedisNodeMetricQueries(nodeMetricQueries, desiredCloudwatchStats)
+	desiredCloudwatchStats := []string{"Average", "Minimum", "Maximum"}
+	timePeriod := endTime.Sub(startTime)
+	timePeriodInSeconds := int64(math.Round(timePeriod.Seconds()))
+	metricDataQueries, metricDataQueryIdLookup := createMetricDataQueries(nodeMetricQueries, desiredCloudwatchStats, timePeriodInSeconds)
 
 	metricDataQueriesInGroupsOf500 := batchMetricDataQueriesIntoGroupsOf500(metricDataQueries)
 
@@ -96,9 +99,10 @@ type queryLookup struct {
 	cloudwatchStatName string
 }
 
-func mergeRedisNodeMetricQueries(
+func createMetricDataQueries(
 	nodeMetricQueries map[string][]*cloudwatch.Metric,
 	desiredCloudwatchStats []string,
+	timePeriodInSeconds int64,
 ) ([]*cloudwatch.MetricDataQuery, map[string]queryLookup) {
 	metricDataQueries := []*cloudwatch.MetricDataQuery{}
 	metricDataQueryIdLookup := map[string]queryLookup{}
@@ -111,7 +115,7 @@ func mergeRedisNodeMetricQueries(
 					Id: aws.String(metricDataQueryId),
 					MetricStat: &cloudwatch.MetricStat{
 						Metric: redisNodeMetricQuery,
-						Period: aws.Int64(60),
+						Period: aws.Int64(timePeriodInSeconds),
 						Stat:   aws.String(desiredCloudwatchStat),
 					},
 				}
