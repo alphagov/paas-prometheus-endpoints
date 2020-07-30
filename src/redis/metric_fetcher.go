@@ -36,15 +36,19 @@ func (f *RedisMetricFetcher) FetchMetrics(
 	servicePlans []cfclient.ServicePlan,
 	service cfclient.Service,
 ) ([]metric_endpoint.Metric, error) {
+	logger := f.logger.Session("fetch-metrics", lager.Data{
+		"username": user.Username(),
+	})
+
 	redisNodes, err := ListRedisNodes(serviceInstances, f.elasticacheClient)
 	if err != nil {
-		f.logger.Error("error listing redis nodes", err)
+		logger.Error("error listing redis nodes", err)
 		return nil, err
 	}
 
 	startTime := time.Now().Add(-7 * time.Minute)
 	endTime := time.Now().Add(-2 * time.Minute)
-	metricDataResults, err := GetMetricsForRedisNodes(redisNodes, startTime, endTime, f.cloudwatchClient)
+	metricDataResults, err := GetMetricsForRedisNodes(redisNodes, startTime, endTime, f.cloudwatchClient, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,6 @@ func (f *RedisMetricFetcher) FetchMetrics(
 func exportRedisNodeMetrics(metrics map[string]*cloudwatch.MetricDataResult, node RedisNode) []metric_endpoint.Metric {
 	exportedMetrics := []metric_endpoint.Metric{}
 	for metricKey, metricDataResult := range metrics {
-		//for i := 0; i < len(metricDataResult.Values); i++ {
 		for i := len(metricDataResult.Values) - 1; i >= 0; i-- {
 			timestamp := *metricDataResult.Timestamps[i]
 			value := *metricDataResult.Values[i]

@@ -22,7 +22,7 @@ func NewBasicAuthenticator(cfURL string) *BasicAuthenticator {
 }
 
 func (a *BasicAuthenticator) Authenticate(username, password string) (CFUser, error) {
-	CFClient, err := cfclient.NewClient(&cfclient.Config{
+	cfClient, err := cfclient.NewClient(&cfclient.Config{
 		ApiAddress:        a.cfURL,
 		Username:          username,
 		Password:          password,
@@ -35,5 +35,5 @@ func (a *BasicAuthenticator) Authenticate(username, password string) (CFUser, er
 	if err != nil {
 		return nil, fmt.Errorf("error authenticating user: %v", err)
 	}
-	return BasicCFUser{CFClient}, nil
+	return BasicCFUser{cfClient, username}, nil
 }

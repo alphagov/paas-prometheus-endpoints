@@ -27,7 +27,7 @@ func NewServicePlansFetcher(
 	logger lager.Logger,
 	cfClient cfclient.CloudFoundryClient,
 ) *ServicePlansFetcher {
-	logger = logger.Session("service_plans_fetcher")
+	logger = logger.Session("service-plans-fetcher")
 	return &ServicePlansFetcher{
 		serviceName: serviceName,
 		schedule:    schedule,
@@ -103,10 +103,12 @@ func (f *ServicePlansFetcher) updateServicePlans() error {
 		return fmt.Errorf("list of service plans was nil")
 	}
 
-	// FIXME: Remove
-	for _, servicePlan := range servicePlans {
-		fmt.Printf("- servicePlan: %s (%s)\n", servicePlan.Name, servicePlan.Guid)
-	}
+	f.logger.Info("updated-service-plans", lager.Data{
+		"number-of-service-plans": len(servicePlans),
+	})
+	f.logger.Debug("updated-service-plans-list", lager.Data{
+		"service-plans": servicePlans,
+	})
 
 	f.servicePlans = servicePlans
 	return nil
