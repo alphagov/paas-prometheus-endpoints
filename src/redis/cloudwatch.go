@@ -7,6 +7,7 @@ import (
 	"time"
 	"unicode"
 
+	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
@@ -16,7 +17,13 @@ func GetMetricsForRedisNodes(
 	startTime,
 	endTime time.Time,
 	cloudwatchClient *cloudwatch.CloudWatch,
+	logger lager.Logger,
 ) (map[string]map[string]*cloudwatch.MetricDataResult, error) {
+	logger = logger.Session("get-metrics-for-redis-nodes", lager.Data{
+		"number-of-redis-nodes": len(redisNodes),
+		"start-time":            startTime.String(),
+		"end-time":              endTime.String(),
+	})
 	nodeMetricQueries := listMetricsForRedisNodes(redisNodes)
 
 	desiredCloudwatchStats := []string{"Average", "Minimum", "Maximum"}
@@ -28,7 +35,7 @@ func GetMetricsForRedisNodes(
 
 	metricDataResults := []*cloudwatch.MetricDataResult{}
 	for _, metricDataQueryInGroupOf500 := range metricDataQueriesInGroupsOf500 {
-		pageMetricDataResults, err := fetchUpTo500MetricDataQueries(metricDataQueryInGroupOf500, startTime, endTime, cloudwatchClient)
+		pageMetricDataResults, err := fetchUpTo500MetricDataQueries(metricDataQueryInGroupOf500, startTime, endTime, cloudwatchClient, logger)
 		if err != nil {
 			return nil, err
 		}
@@ -149,15 +156,17 @@ func fetchUpTo500MetricDataQueries(
 	startTime time.Time,
 	endTime time.Time,
 	cloudwatchClient *cloudwatch.CloudWatch,
+	logger lager.Logger,
 ) ([]*cloudwatch.MetricDataResult, error) {
 	getMetricDataInput := &cloudwatch.GetMetricDataInput{
 		StartTime:         aws.Time(startTime),
 		EndTime:           aws.Time(endTime),
 		MetricDataQueries: metricDataQueries,
 	}
+	logger.Info("get-metric-data-aws-api-call", lager.Data{
+		"number-of-queries": len(getMetricDataInput.MetricDataQueries),
+	})
 
-	// FIXME: Remove. Make a proper logger call.
-	fmt.Printf("running a getmetricdata api call with %d queries\n", len(getMetricDataInput.MetricDataQueries))
 	getMetricDataOutput, err := cloudwatchClient.GetMetricData(getMetricDataInput)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching metrics data: %v", err)
