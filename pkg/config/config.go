@@ -25,10 +25,10 @@ type Config struct {
 
 func NewConfigFromEnv(defaultServiceName string) Config {
 	return Config{
-		DeployEnv:  getEnvWithDefaultString("DEPLOY_ENV", "dev"),
+		DeployEnv:  GetEnvWithDefaultString("DEPLOY_ENV", "dev"),
 		AWSRegion:  os.Getenv("AWS_REGION"),
 		Logger:     getDefaultLogger(),
-		ListenPort: getEnvWithDefaultInt("PORT", 9299),
+		ListenPort: GetEnvWithDefaultInt("PORT", 9299),
 
 		CFClientConfig: &cfclient.Config{
 			ApiAddress:        os.Getenv("CF_API_ADDRESS"),
@@ -43,14 +43,14 @@ func NewConfigFromEnv(defaultServiceName string) Config {
 				Timeout: 30 * time.Second,
 			},
 		},
-		ServiceName: getEnvWithDefaultString("SERVICE_NAME", defaultServiceName),
+		ServiceName: GetEnvWithDefaultString("SERVICE_NAME", defaultServiceName),
 
-		ServicePlanUpdateSchedule: getEnvWithDefaultDuration("SERVICE_PLAN_UPDATE_SCHEDULE", 15*time.Minute),
+		ServicePlanUpdateSchedule: GetEnvWithDefaultDuration("SERVICE_PLAN_UPDATE_SCHEDULE", 15*time.Minute),
 	}
 }
 
-func getEnvWithDefaultDuration(k string, def time.Duration) time.Duration {
-	v := getEnvWithDefaultString(k, "")
+func GetEnvWithDefaultDuration(k string, def time.Duration) time.Duration {
+	v := GetEnvWithDefaultString(k, "")
 	if v == "" {
 		return def
 	}
@@ -61,7 +61,7 @@ func getEnvWithDefaultDuration(k string, def time.Duration) time.Duration {
 	return d
 }
 
-func getEnvWithDefaultString(k string, def string) string {
+func GetEnvWithDefaultString(k string, def string) string {
 	v := os.Getenv(k)
 	if v == "" {
 		return def
@@ -69,7 +69,7 @@ func getEnvWithDefaultString(k string, def string) string {
 	return v
 }
 
-func getEnvWithDefaultInt(k string, def uint) uint {
+func GetEnvWithDefaultInt(k string, def uint) uint {
 	v := os.Getenv(k)
 	if v == "" {
 		return def
