@@ -2,13 +2,13 @@
 
 APP_ROOT ?= $(PWD)
 
-build: bin/redis
+build: bin/redis bin/elasticsearch
 
 bin/redis: clean
 	go build -mod=vendor -o ./bin/redis ./src/redis
 
 bin/elasticsearch: clean
-	go build -o ./bin/elasticsearch ./src/elasticsearch
+	go build -mod=vendor -o ./bin/elasticsearch ./src/elasticsearch
 
 clean:
 	rm -f bin/*
