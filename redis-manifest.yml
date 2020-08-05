@@ -14,6 +14,7 @@ applications:
     env:
       GOVERSION: go1.13
       GOPACKAGENAME: github.com/alphagov/paas-prometheus-endpoints/src/redis
+      GO_INSTALL_PACKAGE_SPEC: github.com/alphagov/paas-prometheus-endpoints/src/redis
       GIN_MODE: release
 
       DEPLOY_ENV: ((deploy_env))
