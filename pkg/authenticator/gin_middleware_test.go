@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 
 	a "github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/testsupport"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,7 @@ var _ = Describe("AuthenticatorMiddleware", func() {
 		})
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/protected-endpoint", nil)
-		req.Header.Set("Authorization", authorizationHeader("allowed-username", "allowed-password"))
+		req.Header.Set("Authorization", testsupport.AuthorizationHeader("allowed-username", "allowed-password"))
 		router.ServeHTTP(w, req)
 		Expect(w.Body.String()).To(Equal("allowed-username"))
 		Expect(w.Code).To(Equal(http.StatusOK))
@@ -62,7 +63,7 @@ var _ = Describe("AuthenticatorMiddleware", func() {
 		})
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/protected-endpoint", nil)
-		req.Header.Set("Authorization", authorizationHeader("allowed-username", "wrong-password"))
+		req.Header.Set("Authorization", testsupport.AuthorizationHeader("allowed-username", "wrong-password"))
 		router.ServeHTTP(w, req)
 		Expect(w.Code).To(Equal(http.StatusUnauthorized))
 	})
