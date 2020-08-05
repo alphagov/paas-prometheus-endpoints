@@ -3,5 +3,5 @@ coverage.txt
 profile.out
 .idea
 
-bin/redis
+/bin
 /tmp
