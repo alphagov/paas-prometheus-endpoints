@@ -11,6 +11,9 @@ applications:
     health-check-type: http
     health-check-http-endpoint: /health
 
+    routes:
+      - route: ((route))
+
     env:
       GOVERSION: go1.13
       GOPACKAGENAME: github.com/alphagov/paas-prometheus-endpoints/src/redis
