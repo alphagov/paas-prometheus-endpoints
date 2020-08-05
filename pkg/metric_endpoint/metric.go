@@ -20,7 +20,7 @@ type Metric struct {
 type ServiceMetricFetcher interface {
 	FetchMetrics(
 		c *gin.Context,
-		user authenticator.CFUser,
+		user authenticator.User,
 		serviceInstances []cfclient.ServiceInstance,
 		servicePlans []cfclient.ServicePlan,
 		service cfclient.Service,

@@ -48,7 +48,7 @@ func getReplicationGroup(name string, elasticacheClient *elasticache.ElastiCache
 		return nil, fmt.Errorf("error fetching replication group '%v' from elasticache: %v", name, err)
 	}
 	if len(replicationGroupOutput.ReplicationGroups) != 1 {
-		return nil, fmt.Errorf("got %d results fetching replication group '%v' from elasticache but expected 1 result", len(replicationGroupOutput.ReplicationGroups))
+		return nil, fmt.Errorf("got %d results fetching replication group '%s' from elasticache but expected 1 result", len(replicationGroupOutput.ReplicationGroups), name)
 	}
 	return replicationGroupOutput.ReplicationGroups[0], nil
 }

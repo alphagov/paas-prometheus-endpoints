@@ -15,9 +15,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("CF User", func() {
+var _ = Describe("User", func() {
 	var serviceInstancePages [][]cfclient.ServiceInstance
-	var basicCFUser *authenticator.BasicCFUser
+	var basicUser *authenticator.BasicUser
 
 	BeforeEach(func() {
 		httpclient := &http.Client{Transport: &http.Transport{}}
@@ -25,15 +25,15 @@ var _ = Describe("CF User", func() {
 
 		httpmock.RegisterResponder(
 			"GET",
-			fmt.Sprintf("%s/v2/info", cfAPIURL),
+			fmt.Sprintf("%s/v2/info", cfApiUrl),
 			httpmock.NewJsonResponderOrPanic(200, map[string]interface{}{
-				"token_endpoint": fmt.Sprintf("%s", uaaAPIURL),
+				"token_endpoint": fmt.Sprintf("%s", uaaApiUrl),
 			}),
 		)
 
 		httpmock.RegisterResponder(
 			"POST",
-			fmt.Sprintf("%s/oauth/token", uaaAPIURL),
+			fmt.Sprintf("%s/oauth/token", uaaApiUrl),
 			httpmock.NewJsonResponderOrPanic(200, map[string]interface{}{
 				// Copy and pasted from UAA docs
 				"access_token":  "acb6803a48114d9fb4761e403c17f812",
@@ -47,17 +47,15 @@ var _ = Describe("CF User", func() {
 		)
 
 		cfClient, err := cfclient.NewClient(&cfclient.Config{
-			ApiAddress: cfAPIURL,
+			ApiAddress: cfApiUrl,
 			HttpClient: httpclient,
 		})
 		Expect(err).NotTo(HaveOccurred())
-
+		basicUser = authenticator.NewBasicUser(cfClient, "test-username")
 		httpmock.Reset() // Reset mock after client creation to clear call count
 
 		logger := lager.NewLogger("cf-user-test")
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
-
-		basicCFUser = &authenticator.BasicCFUser{CFClient: cfClient}
 
 		serviceInstancePages = [][]cfclient.ServiceInstance{
 			{
@@ -72,7 +70,7 @@ var _ = Describe("CF User", func() {
 		}
 	})
 
-	Context("BasicCFUser", func() {
+	Context("BasicUser", func() {
 		It("queries cloud foundry for service instances matching provided service plan guids", func() {
 			mockServiceInstancePageResponse(
 				1, 2, true,
@@ -85,7 +83,7 @@ var _ = Describe("CF User", func() {
 				serviceInstancePages[1],
 			)
 
-			serviceInstances, err := basicCFUser.ListServiceInstancesMatchingPlanGUIDs([]string{"one", "two", "three"})
+			serviceInstances, err := basicUser.ListServiceInstancesMatchingPlanGUIDs([]string{"one", "two", "three"})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(serviceInstances).To(HaveLen(5))
 			Eventually(httpmock.GetTotalCallCount).Should(Equal(2))
@@ -99,7 +97,7 @@ func mockServiceInstancePageResponse(
 	serviceInstances []cfclient.ServiceInstance,
 ) {
 	var nextURL string
-	mockURL := fmt.Sprintf("%s/v2/service_instances", cfAPIURL)
+	mockURL := fmt.Sprintf("%s/v2/service_instances", cfApiUrl)
 
 	expectedQuery := url.Values{
 		"q": []string{expectedQ},

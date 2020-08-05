@@ -69,7 +69,7 @@ func main() {
 			"message": "online",
 		})
 	})
-	auth := authenticator.NewBasicAuthenticator(cfg.CFClientConfig.ApiAddress)
+	auth := authenticator.NewBasicAuthenticator(cfg.CFClientConfig.ApiAddress, nil)
 	authenticatedRoutes := router.Group("/")
 	authenticatedRoutes.Use(authenticator.AuthenticatorMiddleware(auth, cfg.Logger))
 	authenticatedRoutes.GET("/", redisMetricEndpoint)
