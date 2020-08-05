@@ -11,7 +11,7 @@ import (
 )
 
 func MetricEndpoint(
-	servicePlansFetcher *service_plans_fetcher.ServicePlansFetcher,
+	servicePlansStore service_plans_fetcher.ServicePlansStore,
 	serviceMetricsFetcher ServiceMetricFetcher,
 	logger lager.Logger,
 ) gin.HandlerFunc {
@@ -20,15 +20,15 @@ func MetricEndpoint(
 	return func(c *gin.Context) {
 		user := c.MustGet("authenticated_user").(authenticator.User)
 
-		service, ok := servicePlansFetcher.GetService()
-		if !ok {
+		service := servicePlansStore.GetService()
+		if service == nil {
 			logger.Error("service not found", nil)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "an error occurred when trying to fetch the service",
 			})
 			return
 		}
-		servicePlans := servicePlansFetcher.GetServicePlans()
+		servicePlans := servicePlansStore.GetServicePlans()
 		servicePlanGUIDs := make([]string, len(servicePlans))
 		for i, servicePlan := range servicePlans {
 			servicePlanGUIDs[i] = servicePlan.Guid

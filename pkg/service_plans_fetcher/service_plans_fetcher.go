@@ -11,6 +11,11 @@ import (
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 )
 
+type ServicePlansStore interface {
+	GetService() *cfclient.Service
+	GetServicePlans() []cfclient.ServicePlan
+}
+
 type ServicePlansFetcher struct {
 	serviceName  string
 	service      *cfclient.Service
@@ -37,13 +42,10 @@ func NewServicePlansFetcher(
 	}
 }
 
-func (f *ServicePlansFetcher) GetService() (*cfclient.Service, bool) {
+func (f *ServicePlansFetcher) GetService() *cfclient.Service {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.service == nil {
-		return nil, false
-	}
-	return f.service, true
+	return f.service
 }
 
 func (f *ServicePlansFetcher) GetServicePlans() []cfclient.ServicePlan {
@@ -113,3 +115,5 @@ func (f *ServicePlansFetcher) updateServicePlans() error {
 	f.servicePlans = servicePlans
 	return nil
 }
+
+var _ ServicePlansStore = (*ServicePlansFetcher)(nil)
