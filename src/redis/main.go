@@ -72,7 +72,7 @@ func main() {
 	auth := authenticator.NewBasicAuthenticator(cfg.CFClientConfig.ApiAddress, nil)
 	authenticatedRoutes := router.Group("/")
 	authenticatedRoutes.Use(authenticator.AuthenticatorMiddleware(auth, cfg.Logger))
-	authenticatedRoutes.GET("/", redisMetricEndpoint)
+	authenticatedRoutes.GET("/metrics", redisMetricEndpoint)
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.ListenPort),
 		Handler: router,
