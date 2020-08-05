@@ -2,7 +2,10 @@
 
 APP_ROOT ?= $(PWD)
 
-build: bin/redis
+build: bin/example bin/redis
+
+bin/example: clean
+	go build -mod=vendor -o ./bin/example ./src/example
 
 bin/redis: clean
 	go build -mod=vendor -o ./bin/redis ./src/redis
