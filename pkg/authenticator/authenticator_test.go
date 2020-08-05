@@ -3,102 +3,55 @@ package authenticator_test
 import (
 	"fmt"
 	"net/http"
-	// "net/url"
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
 
 	"code.cloudfoundry.org/lager"
-	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/jarcoal/httpmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Authenticator", func() {
-	var serviceInstancePages [][]cfclient.ServiceInstance
-	var basicCFUser *authenticator.BasicCFUser
+	var basicAuthenticator *authenticator.BasicAuthenticator
 
 	BeforeEach(func() {
+		httpmock.Reset()
 		httpclient := &http.Client{Transport: &http.Transport{}}
 		httpmock.ActivateNonDefault(httpclient)
-
-		httpmock.RegisterResponder(
-			"GET",
-			fmt.Sprintf("%s/v2/info", cfAPIURL),
-			httpmock.NewJsonResponderOrPanic(200, map[string]interface{}{
-				"token_endpoint": fmt.Sprintf("%s", uaaAPIURL),
-			}),
-		)
-
-		cfClient, err := cfclient.NewClient(&cfclient.Config{
-			ApiAddress: cfAPIURL,
-			HttpClient: httpclient,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		httpmock.Reset() // Reset mock after client creation to clear call count
+		setupCfV2InfoHttpmock()
 
 		logger := lager.NewLogger("cf-user-test")
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
 
-		basicCFUser = &authenticator.BasicCFUser{CFClient: cfClient}
-
-		serviceInstancePages = [][]cfclient.ServiceInstance{
-			{
-				{Guid: "a"},
-				{Guid: "b"},
-				{Guid: "c"},
-			},
-			{
-				{Guid: "d"},
-				{Guid: "e"},
-			},
-		}
+		basicAuthenticator = authenticator.NewBasicAuthenticator(cfApiUrl, httpclient)
 	})
 
 	Context("BasicAuthenticator", func() {
 		It("tries to log in with the provided username and password", func() {
-			basicAuthenticator := NewBasicAuthenticator(cfAPIURL)
-			basicAuthenticator.Authenticate("user", "pass")
+			setupSuccessfulUaaOauthLoginHttpmock()
 
-			serviceInstances, err := basicCFUser.ListServiceInstancesMatchingPlanGUIDs([]string{"one", "two", "three"})
+			user, err := basicAuthenticator.Authenticate("user", "pass")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(serviceInstances).To(HaveLen(5))
-			Eventually(httpmock.GetTotalCallCount).Should(Equal(1))
+			Expect(user.Username()).To(Equal("user"))
+
+			httpmockInfo := httpmock.GetCallCountInfo()
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo).To(HaveLen(2))
+		})
+
+		It("returns an error if UAA does not accept the credentials", func() {
+			setupFailedUaaOauthLoginHttpmock()
+
+			user, err := basicAuthenticator.Authenticate("user", "pass")
+			Expect(err).To(HaveOccurred())
+			Expect(user).To(BeNil())
+
+			httpmockInfo := httpmock.GetCallCountInfo()
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo).To(HaveLen(2))
 		})
 	})
 })
-
-// func mockServiceInstancePageResponse(
-// 	page int, totalPages int, addNextURL bool,
-// 	expectedQ string,
-// 	serviceInstances []cfclient.ServiceInstance,
-// ) {
-// 	var nextURL string
-// 	mockURL := fmt.Sprintf("%s/v2/service_instances", cfAPIURL)
-
-// 	expectedQuery := url.Values{
-// 		"q": []string{expectedQ},
-// 	}
-
-// 	if page > 1 {
-// 		expectedQuery["page"] = []string{fmt.Sprintf("%d", page)}
-// 	}
-
-// 	if addNextURL {
-// 		nextURLQuery := url.Values{
-// 			"q": []string{expectedQ},
-// 		}
-
-// 		nextURLQuery["page"] = []string{fmt.Sprintf("%d", page+1)}
-
-// 		nextURL = fmt.Sprintf(
-// 			"/v2/service_instances?%s", nextURLQuery.Encode(),
-// 		)
-// 	}
-
-// 	resp := httpmock.NewJsonResponderOrPanic(
-// 		200, wrapServiceInstancesForResponse(totalPages, nextURL, serviceInstances),
-// 	)
-// 	httpmock.RegisterResponderWithQuery("GET", mockURL, expectedQuery, resp)
-// }

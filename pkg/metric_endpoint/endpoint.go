@@ -18,7 +18,7 @@ func MetricEndpoint(
 	logger = logger.Session("metric-endpoint")
 
 	return func(c *gin.Context) {
-		user := c.MustGet("authenticated_user").(authenticator.CFUser)
+		user := c.MustGet("authenticated_user").(authenticator.User)
 
 		service, ok := servicePlansFetcher.GetService()
 		if !ok {

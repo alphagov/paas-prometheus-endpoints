@@ -8,21 +8,25 @@ import (
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 )
 
-type CFUser interface {
+type User interface {
 	Username() string
 	ListServiceInstancesMatchingPlanGUIDs(planGuids []string) ([]cfclient.ServiceInstance, error)
 }
 
-type BasicCFUser struct {
+type BasicUser struct {
 	cfClient cfclient.CloudFoundryClient
 	username string
 }
 
-func (u BasicCFUser) Username() string {
+func NewBasicUser(cfClient cfclient.CloudFoundryClient, username string) *BasicUser {
+	return &BasicUser{cfClient, username}
+}
+
+func (u BasicUser) Username() string {
 	return u.username
 }
 
-func (u BasicCFUser) ListServiceInstancesMatchingPlanGUIDs(servicePlanGuids []string) ([]cfclient.ServiceInstance, error) {
+func (u BasicUser) ListServiceInstancesMatchingPlanGUIDs(servicePlanGuids []string) ([]cfclient.ServiceInstance, error) {
 	q := url.Values{}
 	q.Add("q", fmt.Sprintf("service_plan_guid IN %s", strings.Join(servicePlanGuids, ",")))
 	serviceInstances, err := u.cfClient.ListServiceInstancesByQuery(q)
@@ -31,3 +35,5 @@ func (u BasicCFUser) ListServiceInstancesMatchingPlanGUIDs(servicePlanGuids []st
 	}
 	return serviceInstances, nil
 }
+
+var _ User = (*BasicUser)(nil)
