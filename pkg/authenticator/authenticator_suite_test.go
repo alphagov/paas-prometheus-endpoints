@@ -1,6 +1,7 @@
 package authenticator_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"testing"
 
@@ -54,4 +55,9 @@ func setupFailedUaaOauthLoginHttpmock() {
 			"access_token": "fake-access-token-despite-error-status-code",
 		}),
 	)
+}
+
+func authorizationHeader(user, password string) string {
+	base := user + ":" + password
+	return "Basic " + base64.StdEncoding.EncodeToString([]byte(base))
 }
