@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/testsupport"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/jarcoal/httpmock"
@@ -19,38 +20,38 @@ var _ = Describe("Authenticator", func() {
 		httpmock.Reset()
 		httpclient := &http.Client{Transport: &http.Transport{}}
 		httpmock.ActivateNonDefault(httpclient)
-		setupCfV2InfoHttpmock()
+		testsupport.SetupCfV2InfoHttpmock()
 
-		logger := lager.NewLogger("cf-user-test")
+		logger := lager.NewLogger("authenticator-test")
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
 
-		basicAuthenticator = authenticator.NewBasicAuthenticator(cfApiUrl, httpclient)
+		basicAuthenticator = authenticator.NewBasicAuthenticator(testsupport.CfApiUrl, httpclient)
 	})
 
 	Context("BasicAuthenticator", func() {
 		It("tries to log in with the provided username and password", func() {
-			setupSuccessfulUaaOauthLoginHttpmock()
+			testsupport.SetupSuccessfulUaaOauthLoginHttpmock()
 
 			user, err := basicAuthenticator.Authenticate("user", "pass")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(user.Username()).To(Equal("user"))
 
 			httpmockInfo := httpmock.GetCallCountInfo()
-			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
-			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
 			Expect(httpmockInfo).To(HaveLen(2))
 		})
 
 		It("returns an error if UAA does not accept the credentials", func() {
-			setupFailedUaaOauthLoginHttpmock()
+			testsupport.SetupFailedUaaOauthLoginHttpmock()
 
 			user, err := basicAuthenticator.Authenticate("user", "pass")
 			Expect(err).To(HaveOccurred())
 			Expect(user).To(BeNil())
 
 			httpmockInfo := httpmock.GetCallCountInfo()
-			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
-			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", cfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
 			Expect(httpmockInfo).To(HaveLen(2))
 		})
 	})
