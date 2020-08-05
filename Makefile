@@ -1,9 +1,11 @@
-.PHONY: clean test
+.PHONY: build clean test
 
 APP_ROOT ?= $(PWD)
 
+build: bin/redis
+
 bin/redis: clean
-	go build -o ./bin/redis ./src/redis
+	go build -mod=vendor -o ./bin/redis ./src/redis
 
 clean:
 	rm -f bin/redis
