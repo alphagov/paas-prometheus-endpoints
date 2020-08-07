@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
-	"unicode"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,10 +24,9 @@ func GetMetricsForRedisNodes(
 	})
 	nodeMetricQueries := listMetricsForRedisNodes(redisNodes)
 
-	desiredCloudwatchStats := []string{"Average", "Minimum", "Maximum"}
 	timePeriod := endTime.Sub(startTime)
 	timePeriodInSeconds := int64(math.Round(timePeriod.Seconds()))
-	metricDataQueries, metricDataQueryIdLookup := createMetricDataQueries(nodeMetricQueries, desiredCloudwatchStats, timePeriodInSeconds)
+	metricDataQueries, metricDataQueryIdLookup := createMetricDataQueries(nodeMetricQueries, timePeriodInSeconds)
 
 	metricDataQueriesInGroupsOf500 := batchMetricDataQueriesIntoGroupsOf500(metricDataQueries)
 
@@ -101,14 +98,13 @@ func listMetricsForRedisNode(
 }
 
 type queryLookup struct {
-	redisNodeName      string
-	metricName         string
-	cloudwatchStatName string
+	redisNodeName string
+	metricName    string
+	statisticName string
 }
 
 func createMetricDataQueries(
 	nodeMetricQueries map[string][]*cloudwatch.Metric,
-	desiredCloudwatchStats []string,
 	timePeriodInSeconds int64,
 ) ([]*cloudwatch.MetricDataQuery, map[string]queryLookup) {
 	metricDataQueries := []*cloudwatch.MetricDataQuery{}
@@ -116,20 +112,20 @@ func createMetricDataQueries(
 	metricDataQueryIndex := 0
 	for redisNodeName, redisNodeMetricQueries := range nodeMetricQueries {
 		for _, redisNodeMetricQuery := range redisNodeMetricQueries {
-			for _, desiredCloudwatchStat := range desiredCloudwatchStats {
+			for statistic, _ := range statistics {
 				metricDataQueryId := fmt.Sprintf("q_%d", metricDataQueryIndex)
 				metricDataQuery := &cloudwatch.MetricDataQuery{
 					Id: aws.String(metricDataQueryId),
 					MetricStat: &cloudwatch.MetricStat{
 						Metric: redisNodeMetricQuery,
 						Period: aws.Int64(timePeriodInSeconds),
-						Stat:   aws.String(desiredCloudwatchStat),
+						Stat:   aws.String(statistic),
 					},
 				}
 				metricDataQueryIdLookup[metricDataQueryId] = queryLookup{
-					redisNodeName:      redisNodeName,
-					metricName:         *redisNodeMetricQuery.MetricName,
-					cloudwatchStatName: desiredCloudwatchStat,
+					redisNodeName: redisNodeName,
+					metricName:    *redisNodeMetricQuery.MetricName,
+					statisticName: statistic,
 				}
 				metricDataQueries = append(metricDataQueries, metricDataQuery)
 				metricDataQueryIndex += 1
@@ -206,13 +202,11 @@ func extractValuesFromMetricDataResults(
 		nodeMetricValues := map[string]*cloudwatch.MetricDataResult{}
 
 		for _, metricDataResult := range nodeMetricDataResults {
-			metricId := *metricDataResult.Id
-			metricName := metricDataQueryIdLookup[metricId].metricName
-			cloudwatchStatName := metricDataQueryIdLookup[metricId].cloudwatchStatName
+			metadata := metricDataQueryIdLookup[*metricDataResult.Id]
 			metricKey := fmt.Sprintf(
 				"%s_%s",
-				pascalCaseToSnakeCase(metricName),
-				pascalCaseToSnakeCase(cloudwatchStatName),
+				metrics[metadata.metricName],
+				statistics[metadata.statisticName],
 			)
 			nodeMetricValues[metricKey] = metricDataResult
 		}
@@ -220,32 +214,4 @@ func extractValuesFromMetricDataResults(
 		nodesMetricValues[nodeName] = nodeMetricValues
 	}
 	return nodesMetricValues, nil
-}
-
-func pascalCaseToSnakeCase(pascalCase string) string {
-	// Thanks to https://groups.google.com/g/golang-nuts/c/VCvbLMDE2F0?pli=1
-	// FIXME: This changes "CPU" to "c_p_u". Add support for acronyms.
-	words := []string{}
-	l := 0
-	for s := pascalCase; s != ""; s = s[l:] {
-		l = strings.IndexFunc(s[1:], unicode.IsUpper) + 1
-		if l <= 0 {
-			l = len(s)
-		}
-		words = append(words, s[:l])
-	}
-	return strings.ToLower(strings.Join(words, "_"))
-}
-
-var cacheClusterMetrics = []string{
-	"CurrConnections",
-	"CurrItems",
-	"DatabaseMemoryUsagePercentage",
-	"EngineCPUUtilization",
-	"NewConnections",
-}
-
-var hostMetrics = []string{
-	"CPUUtilization",
-	"SwapUsage",
 }
