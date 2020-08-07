@@ -1,0 +1,31 @@
+---
+applications:
+  - name: paas-prometheus-endpoint-elasticsearch
+    memory: 1G
+    disk_quota: 100M
+    stack: cflinuxfs3
+    instances: 2
+    buildpack: go_buildpack
+    command: ./bin/elasticsearch
+
+    health-check-type: http
+    health-check-http-endpoint: /health
+
+    routes:
+      - route: ((route))
+
+    env:
+      GOVERSION: go1.13
+      GOPACKAGENAME: github.com/alphagov/paas-prometheus-endpoints/src/elasticsearch
+      GO_INSTALL_PACKAGE_SPEC: github.com/alphagov/paas-prometheus-endpoints/src/elasticsearch
+      GIN_MODE: release
+
+      DEPLOY_ENV: ((deploy_env))
+
+      CF_API_ADDRESS: ((cf_api_address))
+      CF_CLIENT_ID: ((cf_client_id))
+      CF_CLIENT_SECRET: ((cf_client_secret))
+
+      AIVEN_PROJECT_NAME: ((aiven_project_name))
+      AIVEN_PROMETHEUS_USERNAME: ((aiven_prometheus_username))
+      AIVEN_PROMETHEUS_PASSWORD: ((aiven_prometheus_password))
