@@ -33,49 +33,56 @@ func (f *ExampleMetricFetcher) FetchMetrics(
 	logger.Debug("fetch-metrics")
 
 	// Export a metric saying how many seconds it is since the service was created
-	metrics := metric_endpoint.Metrics{
-		"service_age_seconds": &dto.MetricFamily{
-			Name:   derefS("service_age_seconds"),
-			Type:   derefT(dto.MetricType_GAUGE),
-			Metric: []*dto.Metric{},
-		},
-	}
+	ageMetrics := []*dto.Metric{}
 	for _, serviceInstance := range serviceInstances {
-		createdAt, err := time.Parse(time.RFC3339, serviceInstance.CreatedAt)
+		ageMetric, err := fetchServiceInstanceAgeMetric(serviceInstance)
 		if err != nil {
-			logger.Error("error-parsing-time", err, lager.Data{
+			// FIXME: Log a metric so we can alert on errors
+			logger.Error("error-fetching-age-metric", err, lager.Data{
 				"service-instance-guid": serviceInstance.Guid,
 				"created-at":            serviceInstance.CreatedAt,
 			})
-			return nil, fmt.Errorf("error generating metrics: %v", err)
+			continue
 		}
-
-		age := time.Now().Sub(createdAt).Seconds()
-		ageMetric := &dto.Metric{
-			Label: []*dto.LabelPair{
-				{
-					Name:  derefS("service_instance_name"),
-					Value: derefS(serviceInstance.Name),
-				},
-				{
-					Name:  derefS("service_instance_guid"),
-					Value: derefS(serviceInstance.Guid),
-				},
-				{
-					Name:  derefS("space_guid"),
-					Value: derefS(serviceInstance.SpaceGuid),
-				},
-			},
-			Gauge: &dto.Gauge{
-				Value: &age,
-			},
-		}
-		metrics["service_age_seconds"].Metric = append(
-			metrics["service_age_seconds"].Metric,
-			ageMetric,
-		)
+		ageMetrics = append(ageMetrics, ageMetric)
 	}
-	return metrics, nil
+	return metric_endpoint.Metrics{
+		"service_age_seconds": &dto.MetricFamily{
+			Name:   derefS("service_age_seconds"),
+			Type:   derefT(dto.MetricType_GAUGE),
+			Metric: ageMetrics,
+		},
+	}, nil
+}
+
+func fetchServiceInstanceAgeMetric(
+	serviceInstance cfclient.ServiceInstance,
+) (*dto.Metric, error) {
+	createdAt, err := time.Parse(time.RFC3339, serviceInstance.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing time: %v", err)
+	}
+
+	age := time.Now().Sub(createdAt).Seconds()
+	return &dto.Metric{
+		Gauge: &dto.Gauge{
+			Value: &age,
+		},
+		Label: []*dto.LabelPair{
+			{
+				Name:  derefS("service_instance_name"),
+				Value: derefS(serviceInstance.Name),
+			},
+			{
+				Name:  derefS("service_instance_guid"),
+				Value: derefS(serviceInstance.Guid),
+			},
+			{
+				Name:  derefS("space_guid"),
+				Value: derefS(serviceInstance.SpaceGuid),
+			},
+		},
+	}, nil
 }
 
 func derefS(s string) *string {
