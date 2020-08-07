@@ -11,26 +11,32 @@ var statistics = map[string]string{
 
 var metrics = map[string]string{
 	"CurrItems":                     "curr_items",
+	"CacheHitRate":                  "cache_hit_rate",
+	"Evictions":                     "evictions",
 	"CurrConnections":               "curr_connections",
 	"NewConnections":                "new_connections",
-	"CPUUtilization":                "cpu_utilization",
-	"EngineCPUUtilization":          "engine_cpu_utilization",
 	"DatabaseMemoryUsagePercentage": "database_memory_usage_percentage",
-	"SwapUsage":                     "swap_usage",
+
+	"CPUUtilization":  "cpu_utilization",
+	"SwapUsage":       "swap_usage",
+	"NetworkBytesIn":  "network_bytes_in",
+	"NetworkBytesOut": "network_bytes_out",
 }
 
-// Metrics grouped by some boring logic around what "dimensions" to ask
-// CloudFront Metrics for
-
+// https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.Redis.html
 var cacheClusterMetrics = []string{
 	"CurrItems",
+	"CacheHitRate",
+	"Evictions",
 	"CurrConnections",
 	"NewConnections",
-	"EngineCPUUtilization",
 	"DatabaseMemoryUsagePercentage",
 }
 
+// https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.HostLevel.html
 var hostMetrics = []string{
 	"CPUUtilization",
 	"SwapUsage",
+	"NetworkBytesIn",
+	"NetworkBytesOut",
 }

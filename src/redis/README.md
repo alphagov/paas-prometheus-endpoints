@@ -1,22 +1,28 @@
 # `paas-prometheus-endpoints-redis`
 
-This provides a Prometheus metrics endpoint for GOV.UK PaaS tenants to obtain metrics about their Redis services.
+This provides a Prometheus metrics endpoint for GOV.UK PaaS tenants to obtain metrics about their Redis services. It is intended to be scraped every 5 minutes (300 seconds) as that is the time period the metrics returned cover.
 
 Our Redis service is provided by AWS ElastiCache Redis, and automated by our [paas-elasticache-broker](https://github.com/alphagov/paas-elasticache-broker). This codebase exports Redis metrics from AWS CloudWatch Metrics, which ElastiCache automatically feeds Redis metrics into.
 
 ## Metrics exported
 
-We export the following metrics with `_average`, `_maximum` and `_minimum` appended:
+From [ElastiCache Metrics for Redis](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.Redis.html):
 
 * `curr_items`
+* `cache_hit_rate`
+* `evictions`
 * `curr_connections`
 * `new_connections`
-* `cpu_utilization`
-* `engine_cpu_utilization`
 * `database_memory_usage_percentage`
-* `swap_usage`
 
-These values are described in more detail at https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.Redis.html and https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.HostLevel.html.
+From [ElastiCache Host-Level Metrics](https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.HostLevel.html):
+
+* `cpu_utilization`
+* `swap_usage`
+* `network_bytes_in`
+* `network_bytes_out`
+
+We export three statistics about each metric. Each has a `_average`, `_maximum` and `_minimum` value (for example `curr_items_maximum`.) These values cover a 5-minute window.
 
 Many more metrics are available than are currently exported. Future work could fetch most metrics directly from the Redis nodes to avoid AWS API charges, allowing more metrics to be exported.
 
