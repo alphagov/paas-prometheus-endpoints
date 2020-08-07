@@ -1,21 +1,18 @@
 package metric_endpoint
 
 import (
-	"fmt"
-	"time"
+	"io"
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
 
+	"code.cloudfoundry.org/lager"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/gin-gonic/gin"
+	dto "github.com/prometheus/client_model/go"
+	"github.com/prometheus/common/expfmt"
 )
 
-type Metric struct {
-	Name  string
-	Value interface{}
-	Time  *time.Time
-	Tags  map[string]string
-}
+type Metrics = map[string]*dto.MetricFamily
 
 type ServiceMetricFetcher interface {
 	FetchMetrics(
@@ -24,44 +21,21 @@ type ServiceMetricFetcher interface {
 		serviceInstances []cfclient.ServiceInstance,
 		servicePlans []cfclient.ServicePlan,
 		service cfclient.Service,
-	) ([]Metric, error)
+	) (Metrics, error)
 }
 
-func groupMetricsByName(metrics []Metric) map[string][]Metric {
-	groupedMetrics := map[string][]Metric{}
-	for _, metric := range metrics {
-		if _, ok := groupedMetrics[metric.Name]; !ok {
-			groupedMetrics[metric.Name] = []Metric{}
-		}
-		groupedMetrics[metric.Name] = append(groupedMetrics[metric.Name], metric)
-	}
-	return groupedMetrics
-}
-
-func renderMetricGroup(metricName string, metricGroup []Metric) string {
-	// FIXME: Support non-gauges metrics?
-	output := fmt.Sprintf("# HELP %s\n", metricName)
-	output += fmt.Sprintf("# TYPE %s gauge\n", metricName)
-	for _, metric := range metricGroup {
-		if metric.Value == nil {
+func renderMetrics(metrics Metrics, out io.Writer, logger lager.Logger) int {
+	totalBytesWritten := 0
+	for _, metricFamily := range metrics {
+		bytesWritten, err := expfmt.MetricFamilyToText(out, metricFamily)
+		totalBytesWritten += bytesWritten
+		if err != nil {
+			// FIXME: Report a metric for this so we know if it starts to error?
+			logger.Error("error-rendering-metrics", err, lager.Data{
+				"metric-family-name": metricFamily.Name,
+			})
 			continue
 		}
-
-		output += fmt.Sprintf("%s{", metricName)
-		firstTag := true
-		for tagName, tagValue := range metric.Tags {
-			if !firstTag {
-				output += ","
-			}
-			output += fmt.Sprintf("%s=\"%s\"", tagName, tagValue)
-			firstTag = false
-		}
-		// FIXME: Output timestamp too
-		output += fmt.Sprintf("} %v", metric.Value)
-		if metric.Time != nil {
-			output += fmt.Sprintf(" %d000", metric.Time.Unix())
-		}
-		output += "\n"
 	}
-	return output
+	return totalBytesWritten
 }

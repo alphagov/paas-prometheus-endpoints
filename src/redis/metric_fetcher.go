@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/gin-gonic/gin"
+	dto "github.com/prometheus/client_model/go"
 )
 
 type RedisMetricFetcher struct {
@@ -35,7 +36,7 @@ func (f *RedisMetricFetcher) FetchMetrics(
 	serviceInstances []cfclient.ServiceInstance,
 	servicePlans []cfclient.ServicePlan,
 	service cfclient.Service,
-) ([]metric_endpoint.Metric, error) {
+) (metric_endpoint.Metrics, error) {
 	logger := f.logger.Session("fetch-metrics", lager.Data{
 		"username": user.Username(),
 	})
@@ -53,38 +54,68 @@ func (f *RedisMetricFetcher) FetchMetrics(
 		return nil, err
 	}
 
-	metrics := []metric_endpoint.Metric{}
-	for redisNodeName, nodeMetricDataResults := range metricDataResults {
-		redisNode := redisNodes[redisNodeName]
-		nodeMetrics := exportRedisNodeMetrics(nodeMetricDataResults, redisNode)
-		metrics = append(metrics, nodeMetrics...)
-	}
-
-	return metrics, nil
+	promMetrics := metricsFromCloudWatchToPrometheus(metricDataResults, redisNodes)
+	return promMetrics, nil
 }
 
-func exportRedisNodeMetrics(metrics map[string]*cloudwatch.MetricDataResult, node RedisNode) []metric_endpoint.Metric {
-	exportedMetrics := []metric_endpoint.Metric{}
-	for metricKey, metricDataResult := range metrics {
-		for i := len(metricDataResult.Values) - 1; i >= 0; i-- {
-			timestamp := *metricDataResult.Timestamps[i]
-			value := *metricDataResult.Values[i]
-			exportedMetric := metric_endpoint.Metric{
-				Name:  metricKey,
-				Value: value,
-				Time:  &timestamp,
-				Tags: map[string]string{
-					"service_instance_name": node.ServiceInstance.Name,
-					"service_instance_guid": node.ServiceInstance.Guid,
-					"space_guid":            node.ServiceInstance.SpaceGuid,
-					"service_plan_guid":     node.ServiceInstance.ServicePlanGuid,
+func metricsFromCloudWatchToPrometheus(
+	metrics map[string]map[string]*cloudwatch.MetricDataResult,
+	nodes map[string]RedisNode,
+) metric_endpoint.Metrics {
+	promMetrics := metric_endpoint.Metrics{}
+	for nodeName, nodeMetrics := range metrics {
+		node := nodes[nodeName]
+		for metricName, metricDataResult := range nodeMetrics {
+			if _, ok := promMetrics[metricName]; !ok {
+				promMetrics[metricName] = &dto.MetricFamily{
+					Name:   derefS(metricName),
+					Type:   derefT(dto.MetricType_GAUGE),
+					Metric: []*dto.Metric{},
+				}
+			}
+
+			timestampMilliseconds := metricDataResult.Timestamps[0].Unix() * 1000
+			promMetric := &dto.Metric{
+				Label: []*dto.LabelPair{
+					{
+						Name:  derefS("service_instance_name"),
+						Value: derefS(node.ServiceInstance.Name),
+					},
+					{
+						Name:  derefS("service_instance_guid"),
+						Value: derefS(node.ServiceInstance.Guid),
+					},
+					{
+						Name:  derefS("space_guid"),
+						Value: derefS(node.ServiceInstance.SpaceGuid),
+					},
+					{
+						Name:  derefS("service_plan_guid"),
+						Value: derefS(node.ServiceInstance.ServicePlanGuid),
+					},
 				},
+				Gauge: &dto.Gauge{
+					Value: metricDataResult.Values[0],
+				},
+				TimestampMs: &timestampMilliseconds,
 			}
 			if node.NodeNumber != nil {
-				exportedMetric.Tags["node"] = fmt.Sprintf("%d", *node.NodeNumber)
+				nodeNumber := fmt.Sprintf("%d", *node.NodeNumber)
+				promMetric.Label = append(promMetric.Label, &dto.LabelPair{
+					Name:  derefS("node"),
+					Value: &nodeNumber,
+				})
 			}
-			exportedMetrics = append(exportedMetrics, exportedMetric)
+			promMetrics[metricName].Metric = append(promMetrics[metricName].Metric, promMetric)
 		}
 	}
-	return exportedMetrics
+	return promMetrics
+}
+
+func derefS(s string) *string {
+	return &s
+}
+
+func derefT(i dto.MetricType) *dto.MetricType {
+	return &i
 }

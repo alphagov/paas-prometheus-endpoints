@@ -10,6 +10,7 @@ import (
 	"code.cloudfoundry.org/lager"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/gin-gonic/gin"
+	dto "github.com/prometheus/client_model/go"
 )
 
 type ExampleMetricFetcher struct {
@@ -27,12 +28,18 @@ func (f *ExampleMetricFetcher) FetchMetrics(
 	serviceInstances []cfclient.ServiceInstance,
 	servicePlans []cfclient.ServicePlan,
 	service cfclient.Service,
-) ([]metric_endpoint.Metric, error) {
+) (metric_endpoint.Metrics, error) {
 	logger := f.logger.WithData(lager.Data{"username": user.Username()})
 	logger.Debug("fetch-metrics")
 
 	// Export a metric saying how many seconds it is since the service was created
-	metrics := []metric_endpoint.Metric{}
+	metrics := metric_endpoint.Metrics{
+		"service_age_seconds": &dto.MetricFamily{
+			Name:   derefS("service_age_seconds"),
+			Type:   derefT(dto.MetricType_GAUGE),
+			Metric: []*dto.Metric{},
+		},
+	}
 	for _, serviceInstance := range serviceInstances {
 		createdAt, err := time.Parse(time.RFC3339, serviceInstance.CreatedAt)
 		if err != nil {
@@ -43,18 +50,38 @@ func (f *ExampleMetricFetcher) FetchMetrics(
 			return nil, fmt.Errorf("error generating metrics: %v", err)
 		}
 
-		age := time.Now().Sub(createdAt)
-		// FIXME: Support units and add seconds here
-		ageMetric := metric_endpoint.Metric{
-			Name:  "service_age",
-			Value: age.Seconds(),
-			Tags: map[string]string{
-				"service_instance_guid": serviceInstance.Guid,
-				"service_instance_name": serviceInstance.Name,
-				"space_guid":            serviceInstance.SpaceGuid,
+		age := time.Now().Sub(createdAt).Seconds()
+		ageMetric := &dto.Metric{
+			Label: []*dto.LabelPair{
+				{
+					Name:  derefS("service_instance_name"),
+					Value: derefS(serviceInstance.Name),
+				},
+				{
+					Name:  derefS("service_instance_guid"),
+					Value: derefS(serviceInstance.Guid),
+				},
+				{
+					Name:  derefS("space_guid"),
+					Value: derefS(serviceInstance.SpaceGuid),
+				},
+			},
+			Gauge: &dto.Gauge{
+				Value: &age,
 			},
 		}
-		metrics = append(metrics, ageMetric)
+		metrics["service_age_seconds"].Metric = append(
+			metrics["service_age_seconds"].Metric,
+			ageMetric,
+		)
 	}
 	return metrics, nil
+}
+
+func derefS(s string) *string {
+	return &s
+}
+
+func derefT(i dto.MetricType) *dto.MetricType {
+	return &i
 }

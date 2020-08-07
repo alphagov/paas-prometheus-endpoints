@@ -1,6 +1,7 @@
 package metric_endpoint
 
 import (
+	"bytes"
 	"net/http"
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
@@ -43,7 +44,7 @@ func MetricEndpoint(
 			return
 		}
 
-		serviceMetrics, err := serviceMetricsFetcher.FetchMetrics(c, user, serviceInstances, servicePlans, *service)
+		metrics, err := serviceMetricsFetcher.FetchMetrics(c, user, serviceInstances, servicePlans, *service)
 		if err != nil {
 			logger.Error("error fetching service metrics", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -52,12 +53,14 @@ func MetricEndpoint(
 			return
 		}
 
-		groupedServiceMetrics := groupMetricsByName(serviceMetrics)
-		renderedOutput := ""
-		for metricName, metricGroup := range groupedServiceMetrics {
-			renderedOutput += renderMetricGroup(metricName, metricGroup)
-		}
-
-		c.Data(http.StatusOK, "text/plain; version=0.0.4", []byte(renderedOutput))
+		output := &bytes.Buffer{}
+		contentLength := renderMetrics(metrics, output, logger)
+		c.DataFromReader(
+			http.StatusOK,
+			int64(contentLength),
+			"text/plain; version=0.0.4",
+			output,
+			nil,
+		)
 	}
 }
