@@ -54,13 +54,14 @@ func (f *RedisMetricFetcher) FetchMetrics(
 		return nil, err
 	}
 
-	promMetrics := metricsFromCloudWatchToPrometheus(metricDataResults, redisNodes)
+	promMetrics := metricsFromCloudWatchToPrometheus(metricDataResults, redisNodes, logger)
 	return promMetrics, nil
 }
 
 func metricsFromCloudWatchToPrometheus(
 	metrics map[string]map[string]*cloudwatch.MetricDataResult,
 	nodes map[string]RedisNode,
+	logger lager.Logger,
 ) metric_endpoint.Metrics {
 	promMetrics := metric_endpoint.Metrics{}
 	for nodeName, nodeMetrics := range metrics {
@@ -72,6 +73,15 @@ func metricsFromCloudWatchToPrometheus(
 					Type:   derefT(dto.MetricType_GAUGE),
 					Metric: []*dto.Metric{},
 				}
+			}
+
+			if len(metricDataResult.Timestamps) == 0 || len(metricDataResult.Values) == 0 {
+				logger.Error("missing-metric-value", nil, lager.Data{
+					"node-name":             node.CacheClusterName,
+					"service-instance-guid": node.ServiceInstance.Guid,
+					"metric-name":           metricName,
+				})
+				continue
 			}
 
 			timestampMilliseconds := metricDataResult.Timestamps[0].Unix() * 1000
