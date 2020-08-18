@@ -43,7 +43,7 @@ func (f *RedisMetricFetcher) FetchMetrics(
 
 	redisNodes, err := ListRedisNodes(serviceInstances, f.elasticacheClient)
 	if err != nil {
-		logger.Error("error listing redis nodes", err)
+		logger.Error("err-listing-redis-nodes", err)
 		return nil, err
 	}
 
