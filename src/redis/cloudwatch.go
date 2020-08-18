@@ -10,13 +10,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 )
 
+type NodeName = string
+type MetricName = string
+
 func GetMetricsForRedisNodes(
 	redisNodes map[string]RedisNode,
 	startTime,
 	endTime time.Time,
 	cloudwatchClient *cloudwatch.CloudWatch,
 	logger lager.Logger,
-) (map[string]map[string]*cloudwatch.MetricDataResult, error) {
+) (map[NodeName]map[MetricName]*cloudwatch.MetricDataResult, error) {
 	logger = logger.Session("get-metrics-for-redis-nodes", lager.Data{
 		"number-of-redis-nodes": len(redisNodes),
 		"start-time":            startTime.String(),
@@ -43,8 +46,10 @@ func GetMetricsForRedisNodes(
 	return extractValuesFromMetricDataResults(nodesMetricDataResults, metricDataQueryIdLookup)
 }
 
-func listMetricsForRedisNodes(redisNodes map[string]RedisNode) map[string][]*cloudwatch.Metric {
-	metricQueries := map[string][]*cloudwatch.Metric{}
+func listMetricsForRedisNodes(
+	redisNodes map[NodeName]RedisNode,
+) map[NodeName][]*cloudwatch.Metric {
+	metricQueries := map[NodeName][]*cloudwatch.Metric{}
 	for _, redisNode := range redisNodes {
 		metricQueries[redisNode.CacheClusterName] = listMetricsForRedisNode(
 			redisNode.CacheClusterName,
@@ -56,9 +61,9 @@ func listMetricsForRedisNodes(redisNodes map[string]RedisNode) map[string][]*clo
 }
 
 func listMetricsForRedisNode(
-	cacheClusterId string,
+	cacheClusterId NodeName,
 	cacheClusterMetricNames,
-	nodeMetricNames []string,
+	nodeMetricNames []MetricName,
 ) []*cloudwatch.Metric {
 	metricQueries := []*cloudwatch.Metric{}
 
@@ -104,7 +109,7 @@ type queryLookup struct {
 }
 
 func createMetricDataQueries(
-	nodeMetricQueries map[string][]*cloudwatch.Metric,
+	nodeMetricQueries map[NodeName][]*cloudwatch.Metric,
 	timePeriodInSeconds int64,
 ) ([]*cloudwatch.MetricDataQuery, map[string]queryLookup) {
 	metricDataQueries := []*cloudwatch.MetricDataQuery{}
@@ -180,7 +185,7 @@ func fetchUpTo500MetricDataQueries(
 func groupMetricDataResultsByNode(
 	metricDataResults []*cloudwatch.MetricDataResult,
 	metricDataQueryIdLookup map[string]queryLookup,
-) map[string][]*cloudwatch.MetricDataResult {
+) map[NodeName][]*cloudwatch.MetricDataResult {
 	nodesMetricDataQueries := map[string][]*cloudwatch.MetricDataResult{}
 	for _, metricDataResult := range metricDataResults {
 		metricId := *metricDataResult.Id
@@ -194,12 +199,12 @@ func groupMetricDataResultsByNode(
 }
 
 func extractValuesFromMetricDataResults(
-	nodesMetricDataResults map[string][]*cloudwatch.MetricDataResult,
+	nodesMetricDataResults map[NodeName][]*cloudwatch.MetricDataResult,
 	metricDataQueryIdLookup map[string]queryLookup,
-) (map[string]map[string]*cloudwatch.MetricDataResult, error) {
-	nodesMetricValues := map[string]map[string]*cloudwatch.MetricDataResult{}
+) (map[NodeName]map[MetricName]*cloudwatch.MetricDataResult, error) {
+	nodesMetricValues := map[NodeName]map[MetricName]*cloudwatch.MetricDataResult{}
 	for nodeName, nodeMetricDataResults := range nodesMetricDataResults {
-		nodeMetricValues := map[string]*cloudwatch.MetricDataResult{}
+		nodeMetricValues := map[MetricName]*cloudwatch.MetricDataResult{}
 
 		for _, metricDataResult := range nodeMetricDataResults {
 			metadata := metricDataQueryIdLookup[*metricDataResult.Id]
