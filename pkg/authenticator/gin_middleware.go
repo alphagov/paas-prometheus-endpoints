@@ -12,7 +12,7 @@ func AuthenticatorMiddleware(auth Authenticator, logger lager.Logger) gin.Handle
 	return func(c *gin.Context) {
 		username, password, ok := c.Request.BasicAuth()
 		if !ok {
-			logger.Error("request did not provide credentials", nil)
+			logger.Error("err-request-did-not-provide-credentials", nil)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "you must provide user credentials via http basic auth",
 			})
@@ -21,14 +21,14 @@ func AuthenticatorMiddleware(auth Authenticator, logger lager.Logger) gin.Handle
 
 		user, err := auth.Authenticate(username, password)
 		if err != nil {
-			logger.Error("provided credentials did not authenticate", err)
+			logger.Error("err-request-credentials-did-not-work", err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "provided credentials did not login successfully",
 			})
 			return
 		}
 
-		logger.Info("successfully authenticated user", lager.Data{"username": username})
+		logger.Info("successfully-authenticated-user", lager.Data{"username": username})
 		c.Set("authenticated_user", user)
 
 		c.Next()

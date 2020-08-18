@@ -23,7 +23,7 @@ func MetricEndpoint(
 
 		service := servicePlansStore.GetService()
 		if service == nil {
-			logger.Error("service not found", nil)
+			logger.Error("err-service-not-found", nil)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "an error occurred when trying to fetch the service",
 			})
@@ -37,7 +37,7 @@ func MetricEndpoint(
 
 		serviceInstances, err := user.ListServiceInstancesMatchingPlanGUIDs(servicePlanGUIDs)
 		if err != nil {
-			logger.Error("error listing service instances", err)
+			logger.Error("err-listing-service-instances", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "an error occurred when trying to list your service instances",
 			})
@@ -46,7 +46,7 @@ func MetricEndpoint(
 
 		metrics, err := serviceMetricsFetcher.FetchMetrics(c, user, serviceInstances, servicePlans, *service)
 		if err != nil {
-			logger.Error("error fetching service metrics", err)
+			logger.Error("err-fetching-service-metrics", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "an error occurred when fetching metrics for your service instances",
 			})
