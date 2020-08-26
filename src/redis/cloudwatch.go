@@ -167,6 +167,9 @@ func fetchUpTo500MetricDataQueries(
 	logger.Info("get-metric-data-aws-api-call", lager.Data{
 		"number-of-queries": len(getMetricDataInput.MetricDataQueries),
 	})
+	if len(getMetricDataInput.MetricDataQueries) > 500 {
+		return nil, fmt.Errorf("more than 500 metric data queries: %d", len(getMetricDataInput.MetricDataQueries))
+	}
 
 	getMetricDataOutput, err := cloudwatchClient.GetMetricData(getMetricDataInput)
 	if err != nil {
