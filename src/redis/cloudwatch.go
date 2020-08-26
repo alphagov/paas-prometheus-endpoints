@@ -67,7 +67,7 @@ func listMetricsForRedisNode(
 ) []*cloudwatch.Metric {
 	metricQueries := []*cloudwatch.Metric{}
 
-	for _, metricName := range cacheClusterMetrics {
+	for _, metricName := range cacheClusterMetricNames {
 		metricQuery := &cloudwatch.Metric{
 			Namespace:  aws.String("AWS/ElastiCache"),
 			MetricName: aws.String(metricName),
