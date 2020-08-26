@@ -33,9 +33,7 @@ func main() {
 
 	cfClient, err := cfclient.NewClient(cfg.CFClientConfig)
 	if err != nil {
-		if err != nil {
-			cfg.Logger.Error("err-unable-to-initialise-own-cf-client", err)
-		}
+		cfg.Logger.Error("err-unable-to-initialise-own-cf-client", err)
 		shutdown()
 		os.Exit(1)
 	}

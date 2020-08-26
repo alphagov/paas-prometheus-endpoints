@@ -84,6 +84,7 @@ func GetEnvWithDefaultInt(k string, def uint) uint {
 func getDefaultLogger() lager.Logger {
 	logger := lager.NewLogger("prometheus-endpoint")
 	logLevel := lager.INFO
+	// FIXME: Allow choices other than INFO and DEBUG`
 	if strings.ToLower(os.Getenv("LOG_LEVEL")) == "debug" {
 		logLevel = lager.DEBUG
 	}

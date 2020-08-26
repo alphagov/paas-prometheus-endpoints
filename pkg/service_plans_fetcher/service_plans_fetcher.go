@@ -38,7 +38,6 @@ func NewServicePlansFetcher(
 		schedule:    schedule,
 		logger:      logger,
 		cfClient:    cfClient,
-		//serviceName, nil, nil, schedule, logger, cfClient, nil
 	}
 }
 
