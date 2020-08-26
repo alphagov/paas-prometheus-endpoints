@@ -38,7 +38,7 @@ var _ = Describe("Authenticator", func() {
 
 			httpmockInfo := httpmock.GetCallCountInfo()
 			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
-			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("POST %s/oauth/token", testsupport.UaaApiUrl)]).Should(Equal(1))
 			Expect(httpmockInfo).To(HaveLen(2))
 		})
 
@@ -51,7 +51,7 @@ var _ = Describe("Authenticator", func() {
 
 			httpmockInfo := httpmock.GetCallCountInfo()
 			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
-			Expect(httpmockInfo[fmt.Sprintf("GET %s/v2/info", testsupport.CfApiUrl)]).Should(Equal(1))
+			Expect(httpmockInfo[fmt.Sprintf("POST %s/oauth/token", testsupport.UaaApiUrl)]).Should(Equal(1))
 			Expect(httpmockInfo).To(HaveLen(2))
 		})
 	})
