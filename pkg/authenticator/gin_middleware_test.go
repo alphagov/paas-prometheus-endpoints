@@ -35,6 +35,7 @@ var _ = Describe("AuthenticatorMiddleware", func() {
 	It("passes the user to the next handler when login is successful", func() {
 		router.GET("/protected-endpoint", func(c *gin.Context) {
 			user := c.MustGet("authenticated_user").(a.User)
+			Expect(user.Username()).To(Equal("allowed-username"))
 			c.String(http.StatusOK, user.Username())
 		})
 		w := httptest.NewRecorder()
