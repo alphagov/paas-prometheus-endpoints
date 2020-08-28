@@ -24,7 +24,7 @@ type ServiceMetricFetcher interface {
 	) (Metrics, error)
 }
 
-func renderMetrics(metrics Metrics, out io.Writer, logger lager.Logger) int {
+func renderMetricsInPromFormat(metrics Metrics, out io.Writer, logger lager.Logger) int {
 	totalBytesWritten := 0
 	for _, metricFamily := range metrics {
 		bytesWritten, err := expfmt.MetricFamilyToText(out, metricFamily)
