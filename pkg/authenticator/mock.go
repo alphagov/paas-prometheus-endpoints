@@ -13,7 +13,7 @@ type MockAuthenticator struct {
 
 func (a *MockAuthenticator) Authenticate(username, password string) (User, error) {
 	if username == a.AllowedUsername && password == a.AllowedPassword {
-		return &MockUser{username}, nil
+		return &MockUser{MockUsername: username}, nil
 	}
 	return nil, fmt.Errorf("password not allowed")
 }
@@ -21,15 +21,34 @@ func (a *MockAuthenticator) Authenticate(username, password string) (User, error
 var _ Authenticator = (*MockAuthenticator)(nil)
 
 type MockUser struct {
-	username string
+	MockUsername            string
+	MockServiceInstances    []cfclient.ServiceInstance
+	MockServiceInstancesErr error
 }
 
 func (u *MockUser) Username() string {
-	return u.username
+	return u.MockUsername
 }
 
 func (u *MockUser) ListServiceInstancesMatchingPlanGUIDs(planGuids []string) ([]cfclient.ServiceInstance, error) {
-	return nil, fmt.Errorf("not implemented on mockuser")
+	if u.MockServiceInstancesErr != nil {
+		return nil, u.MockServiceInstancesErr
+	}
+	matchingServiceInstances := []cfclient.ServiceInstance{}
+	for _, serviceInstance := range u.MockServiceInstances {
+		matches := false
+		for _, planGuid := range planGuids {
+			if serviceInstance.ServicePlanGuid == planGuid {
+				matches = true
+				break
+			}
+		}
+		if matches {
+			matchingServiceInstances = append(matchingServiceInstances, serviceInstance)
+		}
+	}
+
+	return matchingServiceInstances, nil
 }
 
 var _ User = (*MockUser)(nil)
