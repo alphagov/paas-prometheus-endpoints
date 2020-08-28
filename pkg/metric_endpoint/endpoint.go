@@ -2,6 +2,7 @@ package metric_endpoint
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
@@ -21,40 +22,16 @@ func MetricEndpoint(
 	return func(c *gin.Context) {
 		user := c.MustGet("authenticated_user").(authenticator.User)
 
-		service := servicePlansStore.GetService()
-		if service == nil {
-			logger.Error("err-service-not-found", nil)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"message": "an error occurred when trying to fetch the service",
-			})
-			return
-		}
-		servicePlans := servicePlansStore.GetServicePlans()
-		servicePlanGUIDs := make([]string, len(servicePlans))
-		for i, servicePlan := range servicePlans {
-			servicePlanGUIDs[i] = servicePlan.Guid
-		}
-
-		serviceInstances, err := user.ListServiceInstancesMatchingPlanGUIDs(servicePlanGUIDs)
+		metrics, err := GetMetricsForUser(user, servicePlansStore, serviceMetricsFetcher, c, logger)
 		if err != nil {
-			logger.Error("err-listing-service-instances", err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"message": "an error occurred when trying to list your service instances",
-			})
-			return
-		}
-
-		metrics, err := serviceMetricsFetcher.FetchMetrics(c, user, serviceInstances, servicePlans, *service)
-		if err != nil {
-			logger.Error("err-fetching-service-metrics", err)
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"message": "an error occurred when fetching metrics for your service instances",
+				"message": err.Error(),
 			})
 			return
 		}
 
 		output := &bytes.Buffer{}
-		contentLength := renderMetrics(metrics, output, logger)
+		contentLength := renderMetricsInPromFormat(metrics, output, logger)
 		c.DataFromReader(
 			http.StatusOK,
 			int64(contentLength),
@@ -63,4 +40,38 @@ func MetricEndpoint(
 			nil,
 		)
 	}
+}
+
+func GetMetricsForUser(
+	user authenticator.User,
+	servicePlansStore service_plans_fetcher.ServicePlansStore,
+	serviceMetricsFetcher ServiceMetricFetcher,
+	c *gin.Context,
+	logger lager.Logger,
+) (Metrics, error) {
+	service := servicePlansStore.GetService()
+	if service == nil {
+		logger.Error("err-service-not-found", nil)
+		return nil, fmt.Errorf("an error occurred when trying to fetch the service")
+	}
+
+	servicePlans := servicePlansStore.GetServicePlans()
+	servicePlanGUIDs := make([]string, len(servicePlans))
+	for i, servicePlan := range servicePlans {
+		servicePlanGUIDs[i] = servicePlan.Guid
+	}
+
+	serviceInstances, err := user.ListServiceInstancesMatchingPlanGUIDs(servicePlanGUIDs)
+	if err != nil {
+		logger.Error("err-listing-service-instances", err)
+		return nil, fmt.Errorf("an error occurred when trying to list your service instances")
+	}
+
+	metrics, err := serviceMetricsFetcher.FetchMetrics(c, user, serviceInstances, servicePlans, *service)
+	if err != nil {
+		logger.Error("err-fetching-service-metrics", err)
+		return nil, fmt.Errorf("an error occurred when fetching metrics for your service instances")
+	}
+
+	return metrics, nil
 }
