@@ -51,23 +51,17 @@ func listMetricsForRedisNodes(
 ) map[NodeName][]*cloudwatch.Metric {
 	metricQueries := map[NodeName][]*cloudwatch.Metric{}
 	for _, redisNode := range redisNodes {
-		metricQueries[redisNode.CacheClusterName] = listMetricsForRedisNode(
-			redisNode.CacheClusterName,
-			cacheClusterMetrics,
-			hostMetrics,
-		)
+		metricQueries[redisNode.CacheClusterName] = listMetricsForRedisNode(redisNode.CacheClusterName)
 	}
 	return metricQueries
 }
 
 func listMetricsForRedisNode(
 	cacheClusterId NodeName,
-	cacheClusterMetricNames,
-	nodeMetricNames []MetricName,
 ) []*cloudwatch.Metric {
 	metricQueries := []*cloudwatch.Metric{}
 
-	for _, metricName := range cacheClusterMetricNames {
+	for _, metricName := range CacheClusterMetrics {
 		metricQuery := &cloudwatch.Metric{
 			Namespace:  aws.String("AWS/ElastiCache"),
 			MetricName: aws.String(metricName),
@@ -81,7 +75,7 @@ func listMetricsForRedisNode(
 		metricQueries = append(metricQueries, metricQuery)
 	}
 
-	for _, metricName := range nodeMetricNames {
+	for _, metricName := range HostMetrics {
 		metricQuery := &cloudwatch.Metric{
 			Namespace:  aws.String("AWS/ElastiCache"),
 			MetricName: aws.String(metricName),
@@ -117,7 +111,7 @@ func createMetricDataQueries(
 	metricDataQueryIndex := 0
 	for redisNodeName, redisNodeMetricQueries := range nodeMetricQueries {
 		for _, redisNodeMetricQuery := range redisNodeMetricQueries {
-			for statistic, _ := range statistics {
+			for statistic, _ := range Statistics {
 				metricDataQueryId := fmt.Sprintf("q_%d", metricDataQueryIndex)
 				metricDataQuery := &cloudwatch.MetricDataQuery{
 					Id: aws.String(metricDataQueryId),
@@ -213,8 +207,8 @@ func extractValuesFromMetricDataResults(
 			metadata := metricDataQueryIdLookup[*metricDataResult.Id]
 			metricKey := fmt.Sprintf(
 				"%s_%s",
-				metrics[metadata.metricName],
-				statistics[metadata.statisticName],
+				Metrics[metadata.metricName],
+				Statistics[metadata.statisticName],
 			)
 			nodeMetricValues[metricKey] = metricDataResult
 		}

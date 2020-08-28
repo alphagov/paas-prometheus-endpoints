@@ -3,13 +3,13 @@ package main
 // Maps from CloudWatch names to Prometheus-alike names
 // Ideally would be automated but handling acronyms in code was ugly
 
-var statistics = map[string]string{
+var Statistics = map[string]string{
 	"Average": "avg",
 	"Minimum": "min",
 	"Maximum": "max",
 }
 
-var metrics = map[string]string{
+var Metrics = map[string]string{
 	"CurrItems":                     "curr_items",
 	"CacheHitRate":                  "cache_hit_rate",
 	"Evictions":                     "evictions",
@@ -24,7 +24,7 @@ var metrics = map[string]string{
 }
 
 // https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.Redis.html
-var cacheClusterMetrics = []string{
+var CacheClusterMetrics = []string{
 	"CurrItems",
 	"CacheHitRate",
 	"Evictions",
@@ -34,7 +34,7 @@ var cacheClusterMetrics = []string{
 }
 
 // https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/CacheMetrics.HostLevel.html
-var hostMetrics = []string{
+var HostMetrics = []string{
 	"CPUUtilization",
 	"SwapUsage",
 	"NetworkBytesIn",
