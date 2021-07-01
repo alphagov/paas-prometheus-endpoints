@@ -17,9 +17,16 @@ type RedisNode struct {
 	NodeNumber       *int
 	ReplicationGroup *elasticache.ReplicationGroup
 	ServiceInstance  cfclient.ServiceInstance
+	Space            cfclient.Space
+	Organisation     cfclient.Org
 }
 
-func ListRedisNodes(serviceInstances []cfclient.ServiceInstance, elasticacheClient *elasticache.ElastiCache) (map[string]RedisNode, error) {
+func ListRedisNodes(
+	serviceInstances []cfclient.ServiceInstance,
+	spacesByGuid map[string]cfclient.Space,
+	orgsByGuid map[string]cfclient.Org,
+	elasticacheClient *elasticache.ElastiCache,
+) (map[string]RedisNode, error) {
 	redisNodes := map[string]RedisNode{}
 	for _, serviceInstance := range serviceInstances {
 		replicationGroupName := paasElasticacheBrokerRedis.GenerateReplicationGroupName(serviceInstance.Guid)
@@ -29,11 +36,14 @@ func ListRedisNodes(serviceInstances []cfclient.ServiceInstance, elasticacheClie
 		}
 
 		for _, cacheClusterName := range replicationGroup.MemberClusters {
+			space := spacesByGuid[serviceInstance.SpaceGuid]
 			redisNodes[*cacheClusterName] = RedisNode{
 				CacheClusterName: *cacheClusterName,
 				NodeNumber:       getNodeNumberFromCacheClusterName(*cacheClusterName),
 				ReplicationGroup: replicationGroup,
 				ServiceInstance:  serviceInstance,
+				Space:            space,
+				Organisation:     orgsByGuid[space.OrganizationGuid],
 			}
 		}
 	}

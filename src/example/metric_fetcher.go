@@ -26,6 +26,8 @@ func (f *ExampleMetricFetcher) FetchMetrics(
 	c *gin.Context,
 	user authenticator.User,
 	serviceInstances []cfclient.ServiceInstance,
+	spacesByGuid map[string]cfclient.Space,
+	orgsByGuid map[string]cfclient.Org,
 	servicePlans []cfclient.ServicePlan,
 	service cfclient.Service,
 ) (metric_endpoint.Metrics, error) {

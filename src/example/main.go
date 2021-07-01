@@ -12,7 +12,9 @@ import (
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/config"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/metric_endpoint"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/orgs_fetcher"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/service_plans_fetcher"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/spaces_fetcher"
 
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/gin-gonic/gin"
@@ -49,8 +51,30 @@ func main() {
 		os.Exit(1)
 	}()
 
+	spacesFetcher := spaces_fetcher.NewSpacesFetcher(cfg.SpaceUpdateSchedule, cfg.Logger, cfClient)
+	wg.Add(1)
+	go func() {
+		err := spacesFetcher.Run(ctx)
+		if err != nil {
+			cfg.Logger.Error("err-fatal-spaces-fetcher", err)
+		}
+		shutdown()
+		os.Exit(1)
+	}()
+
+	orgsFetcher := orgs_fetcher.NewOrgsFetcher(cfg.OrgUpdateSchedule, cfg.Logger, cfClient)
+	wg.Add(1)
+	go func() {
+		err := orgsFetcher.Run(ctx)
+		if err != nil {
+			cfg.Logger.Error("err-fatal-orgs-fetcher", err)
+		}
+		shutdown()
+		os.Exit(1)
+	}()
+
 	metricFetcher := NewExampleMetricFetcher(cfg.Logger)
-	metricEndpoint := metric_endpoint.MetricEndpoint(servicePlansFetcher, metricFetcher, cfg.Logger)
+	metricEndpoint := metric_endpoint.MetricEndpoint(servicePlansFetcher, spacesFetcher, orgsFetcher, metricFetcher, cfg.Logger)
 
 	router := gin.Default()
 	router.GET("/health", func(c *gin.Context) {

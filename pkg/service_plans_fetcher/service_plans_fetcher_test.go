@@ -18,7 +18,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 )
 
-var _ = Describe("Authenticator", func() {
+var _ = Describe("ServicePlansFetcher", func() {
 	var servicePlansFetcher *service_plans_fetcher.ServicePlansFetcher
 	var fetchSchedule time.Duration
 

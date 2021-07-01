@@ -34,6 +34,8 @@ func (f *RedisMetricFetcher) FetchMetrics(
 	c *gin.Context,
 	user authenticator.User,
 	serviceInstances []cfclient.ServiceInstance,
+	spacesByGuid map[string]cfclient.Space,
+	orgsByGuid map[string]cfclient.Org,
 	servicePlans []cfclient.ServicePlan,
 	service cfclient.Service,
 ) (metric_endpoint.Metrics, error) {
@@ -41,7 +43,7 @@ func (f *RedisMetricFetcher) FetchMetrics(
 		"username": user.Username(),
 	})
 
-	redisNodes, err := ListRedisNodes(serviceInstances, f.elasticacheClient)
+	redisNodes, err := ListRedisNodes(serviceInstances, spacesByGuid, orgsByGuid, f.elasticacheClient)
 	if err != nil {
 		logger.Error("err-listing-redis-nodes", err)
 		return nil, err
@@ -96,8 +98,20 @@ func metricsFromCloudWatchToPrometheus(
 						Value: derefS(node.ServiceInstance.Guid),
 					},
 					{
+						Name:  derefS("space_name"),
+						Value: derefS(node.Space.Name),
+					},
+					{
 						Name:  derefS("space_guid"),
-						Value: derefS(node.ServiceInstance.SpaceGuid),
+						Value: derefS(node.Space.Guid),
+					},
+					{
+						Name:  derefS("org_name"),
+						Value: derefS(node.Organisation.Name),
+					},
+					{
+						Name:  derefS("org_guid"),
+						Value: derefS(node.Organisation.Guid),
 					},
 					{
 						Name:  derefS("service_plan_guid"),
