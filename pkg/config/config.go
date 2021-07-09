@@ -21,6 +21,8 @@ type Config struct {
 	ServiceName    string
 
 	ServicePlanUpdateSchedule time.Duration
+	SpaceUpdateSchedule time.Duration
+	OrgUpdateSchedule time.Duration
 }
 
 func NewConfigFromEnv(defaultServiceName string) Config {
@@ -46,6 +48,8 @@ func NewConfigFromEnv(defaultServiceName string) Config {
 		ServiceName: GetEnvWithDefaultString("SERVICE_NAME", defaultServiceName),
 
 		ServicePlanUpdateSchedule: GetEnvWithDefaultDuration("SERVICE_PLAN_UPDATE_SCHEDULE", 15*time.Minute),
+		SpaceUpdateSchedule: GetEnvWithDefaultDuration("SPACE_UPDATE_SCHEDULE", 15*time.Minute),
+		OrgUpdateSchedule: GetEnvWithDefaultDuration("ORG_UPDATE_SCHEDULE", 15*time.Minute),
 	}
 }
 

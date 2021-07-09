@@ -6,6 +6,8 @@ import (
 
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/metric_endpoint"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/orgs_fetcher"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/spaces_fetcher"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/service_plans_fetcher"
 
 	"code.cloudfoundry.org/lager"
@@ -31,11 +33,34 @@ func (m *MockServicePlansStore) GetServicePlans() []cfclient.ServicePlan {
 
 var _ service_plans_fetcher.ServicePlansStore = (*MockServicePlansStore)(nil)
 
+type MockOrgsStore struct {
+	MockOrgs []cfclient.Org
+}
+
+func (m *MockOrgsStore) GetOrgs() []cfclient.Org {
+	return m.MockOrgs
+}
+
+var _ orgs_fetcher.OrgsStore = (*MockOrgsStore)(nil)
+
+
+type MockSpacesStore struct {
+	MockSpaces []cfclient.Space
+}
+
+func (m *MockSpacesStore) GetSpaces() []cfclient.Space {
+	return m.MockSpaces
+}
+
+var _ spaces_fetcher.SpacesStore = (*MockSpacesStore)(nil)
+
 type MockMetricFetcher struct {
 	FetchMetricsCallback func(
 		_ *gin.Context,
 		_ authenticator.User,
 		_ []cfclient.ServiceInstance,
+		_ map[string]cfclient.Space,
+		_ map[string]cfclient.Org,
 		_ []cfclient.ServicePlan,
 		_ cfclient.Service,
 	) (metric_endpoint.Metrics, error)
@@ -45,10 +70,12 @@ func (f *MockMetricFetcher) FetchMetrics(
 	c *gin.Context,
 	user authenticator.User,
 	serviceInstances []cfclient.ServiceInstance,
+	spaces map[string]cfclient.Space,
+	orgs map[string]cfclient.Org,
 	servicePlans []cfclient.ServicePlan,
 	service cfclient.Service,
 ) (metric_endpoint.Metrics, error) {
-	return f.FetchMetricsCallback(c, user, serviceInstances, servicePlans, service)
+	return f.FetchMetricsCallback(c, user, serviceInstances, spaces, orgs, servicePlans, service)
 }
 
 var _ = Describe("Metric Endpoint", func() {
@@ -56,6 +83,8 @@ var _ = Describe("Metric Endpoint", func() {
 	var router *gin.Engine
 	var mockUser *authenticator.MockUser
 	var mockServicePlansStore *MockServicePlansStore
+	var mockSpacesStore *MockSpacesStore
+	var mockOrgsStore *MockOrgsStore
 	var mockMetricFetcher *MockMetricFetcher
 
 	BeforeEach(func() {
@@ -63,6 +92,8 @@ var _ = Describe("Metric Endpoint", func() {
 		logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, lager.INFO))
 
 		mockServicePlansStore = &MockServicePlansStore{}
+		mockSpacesStore = &MockSpacesStore{}
+		mockOrgsStore = &MockOrgsStore{}
 		mockUser = &authenticator.MockUser{
 			MockUsername: "mock-user",
 		}
@@ -73,7 +104,7 @@ var _ = Describe("Metric Endpoint", func() {
 			c.Set("authenticated_user", mockUser)
 			c.Next()
 		})
-		router.GET("/metrics", metric_endpoint.MetricEndpoint(mockServicePlansStore, mockMetricFetcher, logger))
+		router.GET("/metrics", metric_endpoint.MetricEndpoint(mockServicePlansStore, mockSpacesStore, mockOrgsStore, mockMetricFetcher, logger))
 	})
 
 	It("errors if it doesn't know what CF service to get metrics for", func() {
@@ -111,6 +142,8 @@ var _ = Describe("Metric Endpoint", func() {
 			_ *gin.Context,
 			user authenticator.User,
 			serviceInstances []cfclient.ServiceInstance,
+			spaces map[string]cfclient.Space,
+			orgs map[string]cfclient.Org,
 			servicePlans []cfclient.ServicePlan,
 			service cfclient.Service,
 		) (metric_endpoint.Metrics, error) {
@@ -155,6 +188,8 @@ var _ = Describe("Metric Endpoint", func() {
 			_ *gin.Context,
 			user authenticator.User,
 			serviceInstances []cfclient.ServiceInstance,
+			spaces map[string]cfclient.Space,
+			orgs map[string]cfclient.Org,
 			servicePlans []cfclient.ServicePlan,
 			service cfclient.Service,
 		) (metric_endpoint.Metrics, error) {
