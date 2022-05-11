@@ -1,6 +1,6 @@
 module github.com/alphagov/paas-prometheus-endpoints
 
-go 1.17
+go 1.18
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
@@ -37,7 +37,7 @@ require (
 	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
 	golang.org/x/oauth2 v0.0.0-20190130055435-99b60b757ec1 // indirect
-	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
+	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/fsnotify.v1 v1.4.7 // indirect
