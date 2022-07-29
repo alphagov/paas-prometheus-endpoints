@@ -7,13 +7,13 @@ import (
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/authenticator"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/metric_endpoint"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/orgs_fetcher"
-	"github.com/alphagov/paas-prometheus-endpoints/pkg/spaces_fetcher"
 	"github.com/alphagov/paas-prometheus-endpoints/pkg/service_plans_fetcher"
+	"github.com/alphagov/paas-prometheus-endpoints/pkg/spaces_fetcher"
 
 	"code.cloudfoundry.org/lager"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	"github.com/gin-gonic/gin"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	dto "github.com/prometheus/client_model/go"
 )
@@ -42,7 +42,6 @@ func (m *MockOrgsStore) GetOrgs() []cfclient.Org {
 }
 
 var _ orgs_fetcher.OrgsStore = (*MockOrgsStore)(nil)
-
 
 type MockSpacesStore struct {
 	MockSpaces []cfclient.Space
