@@ -1,10 +1,10 @@
 ---
 platform: linux
 image_resource:
-  type: docker-image
+  type: registry-image
   source:
     repository: golang
-    tag: 1.18.1-stretch
+    tag: 1.20-buster
 inputs:
   - name: repo
 run:
