@@ -1,6 +1,6 @@
 module github.com/alphagov/paas-prometheus-endpoints
 
-go 1.20
+go 1.21
 
 require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
