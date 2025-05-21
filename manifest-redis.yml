@@ -2,8 +2,8 @@
 applications:
   - name: paas-prometheus-endpoint-redis
     memory: 1G
-    disk_quota: 100M
-    stack: cflinuxfs3
+    disk_quota: 128M
+    stack: cflinuxfs4
     instances: 2
     buildpack: go_buildpack
     command: ./bin/redis
